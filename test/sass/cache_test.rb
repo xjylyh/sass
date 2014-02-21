@@ -86,6 +86,7 @@ class CacheTest < Test::Unit::TestCase
     assert_equal ["warning", "cache"], json["type"]
     assert_equal "Warning. Error encountered while saving cache PATH:" \
         " LOAD_ERROR", json["message"]
+    assert_equal "PATH", json["path"]
     assert_not_nil json["backtrace"]
   end
 
@@ -95,6 +96,7 @@ class CacheTest < Test::Unit::TestCase
     assert_equal ["warning", "cache"], json["type"]
     assert_equal "Warning. Error encountered while reading cache PATH:" \
         " TYPE_ERROR", json["message"]
+    assert_equal "PATH", json["path"]
     assert_not_nil json["backtrace"]
   end
 

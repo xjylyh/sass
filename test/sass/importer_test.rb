@@ -209,6 +209,9 @@ MESSAGE
     assert_equal expected_message, json["message"]
     assert_equal expected_dir, json["dir"]
     assert_equal template_name, json["name"]
-    assert_equal [[absolutize("templates/#{template_name}.sass"), "sass"], [absolutize("templates/#{template_name}.scss"), "scss"]], json["candidates"]
+    assert_equal([
+      [absolutize("templates/#{template_name}.sass"), "sass"],
+      [absolutize("templates/#{template_name}.scss"), "scss"]
+    ], json["candidates"])
   end
 end
