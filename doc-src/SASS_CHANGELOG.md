@@ -78,6 +78,17 @@ can use it in a mixin to detect whether a parent selector exists:
   overwritten unless the `!global` flag is used. For example, `$var: value
   !global` will assign to `$var` globally.
 
+## 3.3.4 (21 March 2014)
+
+* Improve the warning message for `index(...) == false`.
+
+* Fix the use of directives like `@font-face` within `@at-root`.
+
+* Fix a `sass --watch` issue on Windows where too many files would be updated
+  on every change.
+
+* Avoid freezing Ruby's `nil` value.
+
 ## 3.3.3 (14 March 2014)
 
 * Fix a bug in Sass that was causing caching errors when unserializable objects

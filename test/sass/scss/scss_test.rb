@@ -3278,7 +3278,18 @@ SCSS
   end
 
   # Regression
- 
+
+  def test_top_level_unknown_directive_in_at_root
+    assert_equal(<<CSS, render(<<SCSS))
+@fblthp {
+  a: b; }
+CSS
+@at-root {
+  @fblthp {a: b}
+}
+SCSS
+  end
+
   def test_parent_ref_with_newline
     assert_equal(<<CSS, render(<<SCSS))
 a.c
@@ -3601,10 +3612,10 @@ SCSS
 }
 .aaa .aaa .aaa {
   background-color: black;
-}   
+}
 .bbb {
   @extend .aaa;
-} 
+}
 .xxx {
   @extend .bbb;
 }
