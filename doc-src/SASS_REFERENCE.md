@@ -304,6 +304,16 @@ Available options are:
   extends \{Sass::Importers::Base} or \{Sass::Importers::Filesystem} and
   overrides \{Sass::Importers::Base#public\_url `#public_url`}.
 
+{#functions-option} `:functions`
+
+: A single module or an array of modules containing Ruby functions to be exposed
+  to Sass. All public methods of these modules will be exposed as Sass functions
+  with the same names, as well as with underscores replaced by hyphens. These
+  functions are evaluated in the context of a
+  \{Sass::Script::Functions::EvaluationContext}. For more details on defining
+  custom functions, see [the Sass functions
+  documentation](Sass/Script/Functions.html#adding_custom_functions).
+
 {#line_numbers-option} `:line_numbers`
 : When set to true, causes the line number and file
   where a selector is defined to be emitted into the compiled CSS

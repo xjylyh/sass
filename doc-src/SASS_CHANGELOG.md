@@ -46,6 +46,11 @@ can use it in a mixin to detect whether a parent selector exists:
   `#f00`, not as `red` or `#ff0000`. In compressed mode, Sass will continue to
   choose the most compact possible representation for colors.
 
+* Add a `:functions` argument to pass custom Ruby functions to a single
+  {Sass::Engine} without affecting the global environment. This option can take
+  either a single module or a list of modules. All public methods of these
+  modules will be made available as Sass functions.
+
 * Add support for unit arithmetic with many more units, including angles, times,
   frequencies, and resolutions.
 
