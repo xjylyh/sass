@@ -190,6 +190,13 @@ module Sass
         options[:filesystem_importer].new(p.to_s)
       end
 
+      if options[:functions]
+        options[:_evaluation_context] =
+          Class.new(Sass::Script::Functions::EvaluationContext) do
+            Array(options[:functions]).each {|mod| include mod}
+          end
+      end
+
       # Backwards compatibility
       options[:property_syntax] ||= options[:attribute_syntax]
       case options[:property_syntax]

@@ -133,11 +133,12 @@ module Sass::Script::Tree
 
       args = construct_ruby_args(ruby_name, args, splat, environment)
 
-      if Sass::Script::Functions.callable?(ruby_name)
+      if Sass::Script::Functions.callable?(ruby_name) ||
+          Array(options[:functions]).any? {|mod| mod.public_method_defined?(ruby_name)}
         local_environment = Sass::Environment.new(environment.global_env, environment.options)
         local_environment.caller = Sass::ReadOnlyEnvironment.new(environment, environment.options)
-        result = opts(Sass::Script::Functions::EvaluationContext.new(
-          local_environment).send(ruby_name, *args))
+        eval_context = options[:_evaluation_context] || Sass::Script::Functions::EvaluationContext
+        result = opts(eval_context.new(local_environment).send(ruby_name, *args))
         without_original(result)
       else
         opts(to_literal(args))

@@ -33,6 +33,12 @@ module Sass::Script::Functions::MyFunctions
   end
 end
 
+module Sass::Script::Functions::MyFunctions2
+  def custom_function(name)
+    quoted_string("Custom function #{name.value}!")
+  end
+end
+
 module Sass::Script::Functions
   include Sass::Script::Functions::UserFunctions
 end
@@ -2695,14 +2701,32 @@ a
 SASS
   end
 
-  def test_my_options_available_in_environment
-    options = { :functions => Sass::Script::Functions::MyFunctions }
+  def test_function_module_in_options
+    options = {
+      :functions => Sass::Script::Functions::MyFunctions
+    }
     assert_equal(<<CSS, render(<<SASS, options))
 a {
   b: nested; }
 CSS
 a
   b: my-option("style")
+SASS
+  end
+
+  def test_multiple_function_modules_in_options
+    options = {:functions => [
+      Sass::Script::Functions::MyFunctions,
+      Sass::Script::Functions::MyFunctions2,
+    ]}
+    assert_equal(<<CSS, render(<<SASS, options))
+a {
+  b: nested;
+  c: "Custom function style!"; }
+CSS
+a
+  b: my-option("style")
+  c: custom-function("style")
 SASS
   end
 
