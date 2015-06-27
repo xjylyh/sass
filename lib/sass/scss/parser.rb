@@ -197,7 +197,7 @@ module Sass
           return dir
         end
 
-        val = almost_any_value
+        val = declaration_value(:stop_at_curly)
         val = val ? ["@#{name} "] + Sass::Util.strip_string_array(val) : ["@#{name}"]
         directive_body(val, start_pos)
       end
@@ -355,7 +355,8 @@ module Sass
       def extend_directive(start_pos)
         selector_start_pos = source_position
         @expected = "selector"
-        selector = Sass::Util.strip_string_array(expr!(:almost_any_value))
+        expected("selector") unless (value = declaration_value(:stop_at_curly))
+        selector = Sass::Util.strip_string_array(value)
         optional = tok(OPTIONAL)
         ss
         node(Sass::Tree::ExtendNode.new(selector, !!optional, range(selector_start_pos)), start_pos)
@@ -628,7 +629,7 @@ module Sass
 
       def ruleset
         start_pos = source_position
-        return unless (rules = almost_any_value)
+        return unless (rules = declaration_value(:stop_at_curly))
         block(node(
           Sass::Tree::RuleNode.new(rules, range(start_pos)), start_pos), :ruleset)
       end
@@ -693,7 +694,7 @@ module Sass
         declaration = try_declaration
 
         if declaration.nil?
-          return unless (selector = almost_any_value)
+          return unless (selector = declaration_value(:stop_at_curly))
         elsif declaration.is_a?(Array)
           selector = declaration
         else
@@ -701,7 +702,7 @@ module Sass
           return declaration
         end
 
-        if (additional_selector = almost_any_value)
+        if (additional_selector = declaration_value(:stop_at_curly))
           selector << additional_selector
         end
 
@@ -739,6 +740,11 @@ module Sass
         mid = [str {ss}]
         return name + mid unless tok(/:/)
         mid << ':'
+
+        if name.first.is_a?(String) && name.first.start_with?("--")
+          return custom_property(name, name_start_pos, name_end_pos)
+        end
+
         return name + mid + [':'] if tok(/:/)
         mid << str {ss}
         post_colon_whitespace = !mid.last.empty?
@@ -764,7 +770,7 @@ module Sass
 
           # If the value would be followed by a semicolon, it's definitely
           # supposed to be a property, not a selector.
-          additional_selector = almost_any_value
+          additional_selector = declaration_value(:stop_at_curly)
           rethrow error if tok?(/;/)
 
           return name + mid + (additional_selector || [])
@@ -783,32 +789,55 @@ module Sass
         nested_properties! node
       end
 
-      # This production is similar to the CSS [`<any-value>`][any-value]
-      # production, but as the name implies, not quite the same. It's meant to
-      # consume values that could be a selector, an expression, or a combination
-      # of both. It respects strings and comments and supports interpolation. It
-      # will consume up to "{", "}", ";", or "!".
+      def custom_property(name, name_start_pos, name_end_pos)
+        value_start_pos = source_position
+        value = expr!(:declaration_value)
+        value_end_pos = source_position
+
+        value = Sass::Script::Tree::Interpolation.from_array(
+          value, !:originally_text, :warn_for_color)
+        node = node(Sass::Tree::PropNode.new(name.flatten.compact, value, :new),
+                    name_start_pos, value_end_pos)
+        node.name_source_range = range(name_start_pos, name_end_pos)
+        node.value_source_range = range(value_start_pos, value_end_pos)
+        node
+      end
+
+      # Parses a CSS [`<declaration-value>`][link] production, with additional
+      # support for interpolation.
       #
-      # [any-value]: http://dev.w3.org/csswg/css-variables/#typedef-any-value
+      # [link]: http://dev.w3.org/csswg/css-syntax-3/#typedef-declaration-value
+      #
+      # If `stop_at_curly` is true, this will stop parsing when it encounters an
+      # open or close curly brace, contrary to the CSS production.
       #
       # Values consumed by this production will usually be parsed more
       # thoroughly once interpolation has been resolved.
-      def almost_any_value
-        return unless (tok = almost_any_value_token)
-        sel = [tok]
-        while (tok = almost_any_value_token)
-          sel << tok
-        end
-        merge(sel)
+      def declaration_value(stop_at_curly = false)
+        sel = []
+        delimiters = []
+        delim = nil
+        begin
+          sel << delim if delim
+          while (tok = declaration_value_token(delimiters.empty?))
+            sel << tok
+          end
+        end while (delim = balance_declaration_value(delimiters, stop_at_curly))
+
+        merge(sel) unless sel.empty?
       end
 
-      def almost_any_value_token
+      # Parses a single token for `declaration_value`.
+      #
+      # If `top_level` is true, this will parse semicolons and exclamation marks
+      # as tokens.
+      def declaration_value_token(top_level = true)
         tok(%r{
           (
             \\.
           |
             (?!url\()
-            [^"'/\#!;\{\}] # "
+            [^"'/\#!;{}()\[\]]
           |
             /(?![/*])
           |
@@ -817,7 +846,29 @@ module Sass
             !(?![a-z]) # TODO: never consume "!" when issue 1126 is fixed.
           )+
         }xi) || tok(COMMENT) || tok(SINGLE_LINE_COMMENT) || interp_string || interp_uri ||
-                interpolation(:warn_for_color)
+                interpolation(:warn_for_color) || (tok(/[;!]/) unless top_level)
+      end
+
+      def balance_declaration_value(delimiters, stop_at_curly)
+        return unless (char = @scanner.rest[0])
+        char = char.chr # Ruby 1.8 compatibility
+
+        if char == '(' || char == '[' || (!stop_at_curly && char == '{')
+          delimiters <<
+            case char
+            when '('; ')'
+            when '['; ']'
+            when '{'; '}'
+            end
+          return @scanner.scan(/./)
+        end
+
+        if char == ')' || char == ']' || (!stop_at_curly && char == '}')
+          delimiter = delimiters.pop
+          return @scanner.scan(/./) if delimiter == char
+        end
+
+        nil
       end
 
       def declaration
@@ -838,6 +889,11 @@ module Sass
         ss
 
         tok!(/:/)
+
+        if name.first.is_a?(String) && name.first.start_with?("--")
+          return custom_property(name, name_start_pos, name_end_pos)
+        end
+
         ss
         value_start_pos = source_position
         value = value!
@@ -1057,7 +1113,8 @@ module Sass
         :supports_condition_in_parens => "@supports condition (e.g. (display: flexbox))",
         :a_n_plus_b => "An+B expression",
         :keyframes_selector_component => "from, to, or a percentage",
-        :keyframes_selector => "keyframes selector (e.g. 10%)"
+        :keyframes_selector => "keyframes selector (e.g. 10%)",
+        :declaration_value => "expression",
       }
 
       TOK_NAMES = Sass::Util.to_hash(Sass::SCSS::RX.constants.map do |c|

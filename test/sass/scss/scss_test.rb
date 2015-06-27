@@ -2348,6 +2348,29 @@ $domain: "sass-lang.com";
 SCSS
   end
 
+  def test_custom_property_doesnt_eval_sass_script
+    assert_parses <<SCSS
+a {
+  --b: $var;
+  --c: lighten(blue, 10%);
+  --d: 1 + 2; }
+SCSS
+  end
+
+  def test_custom_property_does_eval_interpolation
+    assert_equal <<CSS, render(<<SCSS)
+a {
+  --b: c 3 d;
+  --e: {f: 7};
+  --g: 11, 15; }
+CSS
+a {
+  --b: c \#{1 + 2} d;
+  --e: {f: \#{3 + 4}};
+  --g: \#{5 + 6}, \#{7 + 8}; }
+SCSS
+  end
+
   def test_color_interpolation_warning_in_selector
     assert_warning(<<WARNING) {assert_equal <<CSS, render(<<SCSS)}
 WARNING on line 1, column 4 of #{filename_for_test(:scss)}:

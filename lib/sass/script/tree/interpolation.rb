@@ -27,6 +27,37 @@ module Sass::Script::Tree
     #   generate a warning.
     attr_reader :warn_for_color
 
+    # Returns an interpolation expression for an array of strings and nodes.
+    #
+    # @param value [Array<Node | String>]
+    # @param originally_text [Boolean] See {Interpolation#originally_text}
+    # @param warn_for_color [Boolean] See {Interpolation#warn_for_color}
+    # @return Interpolation
+    def self.from_array(value, originally_text = false, warn_for_color = false)
+      before = nil
+      mid = nil
+      str = ""
+      (value + [nil]).each do |element|
+        if element.is_a?(String)
+          str << element
+          next
+        end
+
+        literal = Sass::Script::Tree::Literal.new(Sass::Script::Value::String.new(str))
+        str = ""
+
+        if before.nil?
+          before = literal
+        else
+          before = new(before, mid, literal, false, false, originally_text, warn_for_color)
+        end
+
+        mid = element
+      end
+
+      before
+    end
+
     # Interpolation in a property is of the form `before #{mid} after`.
     #
     # @param before [Node] See {Interpolation#before}

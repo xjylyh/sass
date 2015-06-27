@@ -74,6 +74,10 @@ module Sass::Tree
       self.class == other.class && name == other.name && value == other.value && super
     end
 
+    def custom?
+      name.first.is_a?(String) && name.first.start_with?("--")
+    end
+
     # Returns a appropriate message indicating how to escape pseudo-class selectors.
     # This only applies for old-style properties with no value,
     # so returns the empty string if this is new-style.

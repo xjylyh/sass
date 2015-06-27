@@ -459,6 +459,49 @@ foo {
 SCSS
   end
 
+  ## Custom properties
+
+  def test_simple_custom_property
+    assert_parses <<SCSS
+a {
+  --b: c; }
+SCSS
+  end
+
+  def test_custom_property_with_nesting
+    assert_parses <<SCSS
+a {
+  --b: (c; {d; [e; !f] g} h); }
+SCSS
+  end
+
+  def test_custom_property_with_significant_whitespace
+    assert_parses <<SCSS
+a {
+  --b: ;
+  --c:  d    ;
+  --e:    f  \t  ;
+  --g:h;
+  --i:{{}}; }
+SCSS
+  end
+
+  def test_important_custom_property
+    assert_parses <<SCSS
+a {
+  --b: c !important; }
+SCSS
+  end
+
+  def test_custom_property_doesnt_eval_sass_script
+    assert_parses <<SCSS
+a {
+  --b: $var;
+  --c: lighten(blue, 10%);
+  --d: 1 + 2; }
+SCSS
+  end
+
   ## Directives
 
   def test_namespace_directive

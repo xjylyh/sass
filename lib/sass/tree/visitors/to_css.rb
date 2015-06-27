@@ -252,7 +252,8 @@ class Sass::Tree::Visitors::ToCss < Sass::Tree::Visitors::Base
       output(":")
       for_node(node, :value) {output(node.resolved_value)}
     else
-      output(": ")
+      output(":")
+      output(" ") unless node.custom?
       for_node(node, :value) {output(node.resolved_value)}
       output(";")
     end
